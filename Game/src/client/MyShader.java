@@ -2,7 +2,10 @@ package client;
 
 import org.lwjgl.util.vector.Matrix4f;
 
-import engine.Shader;
+import engine.camera.Camera;
+import engine.math.Maths;
+import engine.shader.Shader;
+
 
 public class MyShader extends Shader{
 	
@@ -22,21 +25,6 @@ public class MyShader extends Shader{
 		viewMatrixLocation = getUniformLocation("viewMatrix");
 		modelMatrixLocation = getUniformLocation("modelMatrix");
 	}
-	
-	public void loadProjectionMatrix(Matrix4f matrix)
-	{
-		this.getUniform(projectionMatrixLocation, matrix);
-	}
-	
-	public void loadViewMatrix(Matrix4f matrix)
-	{
-		this.getUniform(viewMatrixLocation, matrix);
-	}
-	
-	public void loadModelMatrix(Matrix4f matrix)
-	{
-		this.getUniform(modelMatrixLocation, matrix);
-	}
 
 	public int getProjectionMatrixLocation() {
 		return projectionMatrixLocation;
@@ -49,5 +37,10 @@ public class MyShader extends Shader{
 	public int getModelMatrixLocation() {
 		return modelMatrixLocation;
 	}
-	
+
+	public void loadViewMatrix(Camera cam) {
+		Matrix4f viewMatrix = Maths.createViewMatrix(cam);
+		loadMatrix(viewMatrixLocation, viewMatrix);
+	}
 }
+

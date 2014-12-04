@@ -9,3 +9,5 @@ image0.png
 image1.png
 stall.obj
 stall.png
+*.wav
+Game/models/random.obj

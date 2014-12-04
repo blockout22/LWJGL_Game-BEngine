@@ -12,13 +12,17 @@ import javax.swing.JOptionPane;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
-import engine.Camera;
-import engine.Entity;
-import engine.OBJLoader;
-import engine.TexturedMesh;
 import engine.Window;
+import engine.camera.Camera;
+import engine.entity.Entity;
+import engine.loader.OBJLoader;
+import engine.mesh.Mesh;
+import engine.sound.Music;
+import browser.WebBrowser;
 
 public class Game {
+
+	private boolean isSettingUp = false;
 
 	// Server
 	private Socket socket = null;
@@ -26,15 +30,19 @@ public class Game {
 	private BufferedReader in = null;
 	//
 
-	private TexturedMesh mesh, mesh2, playerMesh;
+	private static WebBrowser browser;
+
+	private Mesh mesh;
 	private MyShader shader;
 
 	public Camera cam;
 
-	protected ArrayList<TexturedMesh> meshList = new ArrayList<TexturedMesh>();
+	protected ArrayList<Mesh> meshList = new ArrayList<Mesh>();
 
-	private Entity entity, entity2, thePlayer;
+	private Entity entity;
 	private boolean isConnected = false;
+
+	private static Music music = new Music("sounds/AN.wav");
 
 	public Game(boolean connect) {
 		Window.createWindow(800, 600, 3.2);
@@ -54,24 +62,23 @@ public class Game {
 				e.printStackTrace();
 			}
 		}
-
+		try {
+			browser = new WebBrowser();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		init();
 	}
 
 	private void init() {
-		mesh = OBJLoader.loadObjModel("models/stall.obj", "images/stall.png");
-		mesh2 = OBJLoader.loadObjModel("models/stall.obj", "images/image0.png");
 		shader = new MyShader();
-
 		cam = new Camera(70f, Window.getAspectRatio(), 0.1f, 100f);
-
-		entity = new Entity(mesh2, new Vector3f(-10, 0, -10), 0, 0, 0, 1);
-		entity2 = new Entity(mesh2, new Vector3f(0, 0, 0), 0, 0, 0, 1);
-
-		playerMesh = OBJLoader.loadObjModel("models/stall.obj", "images/stall.png");
-		thePlayer = new Entity(playerMesh, new Vector3f(-cam.getCameraPos().x, -cam.getCameraPos().y, -cam.getCameraPos().z), 0, 0, 0, 1);
+		mesh = OBJLoader.loadObjModel("models/stall.obj", "images/stall.png", shader.getProjectionMatrixLocation(), shader, cam);
+		entity = new Entity(mesh, new Vector3f(0, 0, -20), 0, 0, 0, 1);
 
 		gameLoop();
+
+		System.out.println("Done!");
 	}
 
 	private void gameLoop() {
@@ -79,8 +86,7 @@ public class Game {
 			if (isConnected) {
 				serverComunication();
 			}
-			cam.useView();
-			Window.enableDepthBuffer();
+			cam.move();
 			Window.clearAll(0.3f, 0.4f, 0.8f, 0.0f);
 			render();
 			update();
@@ -91,33 +97,20 @@ public class Game {
 
 	private void render() {
 		shader.bind();
-
-		for (TexturedMesh m : meshList) {
-			m.draw();
-		}
-
-		shader.loadProjectionMatrix(cam.getProjectionMatrix());
-		shader.loadViewMatrix(cam.getViewMatrix());
-		shader.loadModelMatrix(cam.getModelMatrix());
-		mesh.drawEntity(entity2, shader, shader.getModelMatrixLocation());
-		mesh2.drawEntity(entity, shader, shader.getModelMatrixLocation());
-
-		playerMesh.drawEntity(thePlayer, shader, shader.getModelMatrixLocation());
-		thePlayer.setPosition(new Vector3f(-cam.getCameraPos().x, -cam.getCameraPos().y - 10, -cam.getCameraPos().z - 10));
-
-		Window.setTitle(cam.getCameraPosAsString() + " | " + thePlayer.getPosition());
-
-		entity.setRotation(0, 180f, 0);
+		shader.loadViewMatrix(cam);
+		mesh.draw(shader.getModelMatrixLocation(), entity);
 		shader.unbind();
+
+		Window.update();
+		Window.sync(60);
 	}
 
 	private void update() {
 		Input.update(this);
-
-		Window.update();
+		// music.playAtLocation(cam, 25, -10, 25, 15);
 	}
 
-	//TODO
+	// TODO
 	private void serverComunication() {
 		try {
 			String input = in.readLine();
@@ -125,7 +118,7 @@ public class Game {
 				System.out.println(input);
 			}
 
-			Vector3f pos = cam.getCameraPos();
+			Vector3f pos = cam.getPosition();
 			out.println("#position" + pos);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -192,6 +185,14 @@ public class Game {
 		};
 
 		return texCoords;
+	}
+
+	public static WebBrowser getBrowser() {
+		return browser;
+	}
+
+	public static Music getMusic() {
+		return music;
 	}
 
 }
